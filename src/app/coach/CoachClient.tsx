@@ -606,7 +606,27 @@ function NewPlayerForm({ onSuccess, onCancel }) {
               <input className="wp-input" type={pw?'password':'text'} value={f[k]} onChange={e=>set(k,e.target.value)} placeholder={ph} required={['nombre','usuario','password'].includes(k)} />
             </div>
           ))}
-          <div style={{ gridColumn:'span 2' }}><label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:5 }}>URL de Foto (opcional)</label><input className="wp-input" value={f.foto_url} onChange={e=>set('foto_url',e.target.value)} placeholder="https://..." /></div>
+          <div style={{ gridColumn:'span 2' }}>
+            <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:8 }}>Foto de perfil</label>
+            <label style={{ display:'flex', alignItems:'center', gap:12, cursor:'pointer', background:'var(--ink3)', border:`1px solid ${f.foto_url?'var(--lime)':'var(--fog)'}`, borderRadius:10, padding:'10px 14px', transition:'border-color .15s' }}>
+              <div style={{ width:44, height:44, borderRadius:'50%', overflow:'hidden', background:'var(--mist)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                {f.foto_url
+                  ? <img src={f.foto_url} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt=""/>
+                  : <span style={{ fontSize:18 }}>📷</span>
+                }
+              </div>
+              <div>
+                <p style={{ fontSize:13, color: f.foto_url?'var(--lime)':'var(--silver)', fontWeight:500 }}>{f.foto_url ? 'Foto cargada ✓' : 'Tocar para cargar foto'}</p>
+                <p style={{ fontSize:11, color:'var(--silver)', marginTop:2 }}>JPG, PNG o WEBP — desde la compu o celular</p>
+              </div>
+              <input type="file" accept="image/*" style={{ display:'none' }} onChange={e=>{
+                const file=e.target.files?.[0]; if(!file) return
+                const reader=new FileReader()
+                reader.onload=()=>set('foto_url', reader.result as string)
+                reader.readAsDataURL(file)
+              }}/>
+            </label>
+          </div>
           <div><label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:5 }}>Posición</label><select className="wp-input" value={f.posicion} onChange={e=>set('posicion',e.target.value)} style={{ appearance:'none' }}><option value="" style={{ background:'var(--ink2)' }}>— Seleccionar —</option>{POSICIONES.map(v=><option key={v} value={v} style={{ background:'var(--ink2)' }}>{v}</option>)}</select></div>
           <div><label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:5 }}>Pie hábil</label><select className="wp-input" value={f.pie_habil} onChange={e=>set('pie_habil',e.target.value)} style={{ appearance:'none' }}>{['Derecho','Izquierdo','Ambidiestro'].map(v=><option key={v} value={v} style={{ background:'var(--ink2)' }}>{v}</option>)}</select></div>
         </div>
@@ -623,6 +643,8 @@ function NewPlayerForm({ onSuccess, onCancel }) {
 function ManageRow({ player, last, onRefresh }) {
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [photoUrl, setPhotoUrl] = useState(player.foto_url||null)
+  const [photoSaving, setPhotoSaving] = useState(false)
   async function toggle() {
     setLoading(true)
     await fetch(`/api/players/${player.id}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({activo:!player.activo})})
@@ -630,11 +652,17 @@ function ManageRow({ player, last, onRefresh }) {
   }
   return (
     <div style={{ borderBottom:last?'none':'1px solid var(--mist)' }}>
-      <button onClick={()=>setOpen(!open)} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'14px 20px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', transition:'background .12s' }}
+      <button onClick={()=>setOpen(!open)} style={{ width:'100%', display:'flex', alignItems:'center', gap:12, padding:'12px 20px', background:'transparent', border:'none', cursor:'pointer', textAlign:'left', transition:'background .12s' }}
         onMouseEnter={e=>e.currentTarget.style.background='var(--ink3)'}
         onMouseLeave={e=>e.currentTarget.style.background='transparent'}
       >
-        <div style={{ width:8, height:8, borderRadius:'50%', background:player.activo?'#22c55e':'var(--fog)', flexShrink:0 }} />
+        {/* Avatar */}
+        <div style={{ width:40, height:40, borderRadius:'50%', overflow:'hidden', background:'var(--mist)', flexShrink:0, display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, fontWeight:700, color:'var(--silver)', border:'1px solid var(--fog)' }}>
+          {photoUrl
+            ? <img src={photoUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt=""/>
+            : player.nombre.split(' ').map(w=>w[0]).slice(0,2).join('')
+          }
+        </div>
         <div style={{ flex:1, minWidth:0 }}>
           <div style={{ fontWeight:500, fontSize:14, color:'var(--snow)' }}>{player.nombre}</div>
           <div style={{ fontSize:11, color:'var(--silver)', marginTop:1 }}>@{player.usuario} · {player.posicion||'—'}{player.lesion&&<span style={{ marginLeft:8, color:'#f87171' }}>🏥 Lesionado</span>}</div>
@@ -643,17 +671,43 @@ function ManageRow({ player, last, onRefresh }) {
         <span style={{ color:'var(--fog)', transition:'transform .2s', display:'inline-block', transform:open?'rotate(90deg)':'none' }}>›</span>
       </button>
       {open && (
-        <div style={{ padding:'10px 20px 16px', background:'var(--ink3)', borderTop:'1px solid var(--mist)', display:'flex', flexWrap:'wrap', gap:10, alignItems:'center' }}>
-          <div style={{ fontSize:12, color:'var(--silver)', display:'flex', flexWrap:'wrap', gap:12 }}>
-            {player.edad&&<span>🎂 {player.edad} años</span>}
-            {player.peso_kg&&<span>⚖️ {player.peso_kg} kg</span>}
-            {player.estatura_cm&&<span>📏 {player.estatura_cm} cm</span>}
-            {player.pie_habil&&<span>⚽ Pie {player.pie_habil}</span>}
-          </div>
-          <div style={{ marginLeft:'auto' }}>
-            <button onClick={toggle} disabled={loading} className="btn-ghost" style={{ fontSize:12, padding:'7px 14px', color:player.activo?'#f87171':'#4ade80', borderColor:player.activo?'rgba(239,68,68,.3)':'rgba(34,197,94,.3)' }}>
-              {loading?'...':player.activo?'Desactivar acceso':'Activar acceso'}
-            </button>
+        <div style={{ padding:'14px 20px 18px', background:'var(--ink3)', borderTop:'1px solid var(--mist)' }}>
+          <div style={{ display:'flex', gap:16, alignItems:'flex-start', flexWrap:'wrap' }}>
+            {/* Photo upload inline */}
+            <label style={{ cursor:'pointer', flexShrink:0 }}>
+              <div style={{ width:64, height:64, borderRadius:'50%', overflow:'hidden', background:'var(--mist)', border:`2px solid ${photoUrl?'var(--lime)':'var(--fog)'}`, display:'flex', alignItems:'center', justifyContent:'center', position:'relative', transition:'border-color .15s' }}>
+                {photoUrl
+                  ? <img src={photoUrl} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt=""/>
+                  : <span style={{ fontSize:22 }}>📷</span>
+                }
+                {photoSaving && <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,.6)', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, color:'white' }}>...</div>}
+              </div>
+              <p style={{ fontSize:9, color:photoUrl?'var(--lime)':'var(--silver)', textAlign:'center', marginTop:4 }}>{photoUrl?'Cambiar foto':'Cargar foto'}</p>
+              <input type="file" accept="image/*" capture="environment" style={{ display:'none' }} onChange={async e=>{
+                const file=e.target.files?.[0]; if(!file) return
+                setPhotoSaving(true)
+                const reader=new FileReader()
+                reader.onload=async()=>{
+                  const dataUrl=reader.result as string
+                  await fetch('/api/players/photo',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({jugador_id:player.jugador_id,foto_url:dataUrl})})
+                  setPhotoUrl(dataUrl)
+                  setPhotoSaving(false)
+                }
+                reader.readAsDataURL(file)
+              }}/>
+            </label>
+            {/* Info + actions */}
+            <div style={{ flex:1, minWidth:180 }}>
+              <div style={{ fontSize:12, color:'var(--silver)', display:'flex', flexWrap:'wrap', gap:10, marginBottom:12 }}>
+                {player.edad&&<span>🎂 {player.edad} años</span>}
+                {player.peso_kg&&<span>⚖️ {player.peso_kg} kg</span>}
+                {player.estatura_cm&&<span>📏 {player.estatura_cm} cm</span>}
+                {player.pie_habil&&<span>⚽ Pie {player.pie_habil}</span>}
+              </div>
+              <button onClick={toggle} disabled={loading} className="btn-ghost" style={{ fontSize:12, padding:'7px 14px', color:player.activo?'#f87171':'#4ade80', borderColor:player.activo?'rgba(239,68,68,.3)':'rgba(34,197,94,.3)' }}>
+                {loading?'...':player.activo?'Desactivar acceso':'Activar acceso'}
+              </button>
+            </div>
           </div>
         </div>
       )}

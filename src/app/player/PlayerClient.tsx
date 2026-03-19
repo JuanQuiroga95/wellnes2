@@ -73,6 +73,13 @@ export default function PlayerClient({ session, jugador, jugadorId, acwr, acwrHi
             <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16 }}>
               <div className="card anim-up delay-3" style={{ padding:20 }}>
                 <p style={{ fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>Mi perfil</p>
+                {jugador?.foto_url && (
+                  <div style={{ textAlign:'center', marginBottom:14 }}>
+                    <div style={{ width:72, height:72, borderRadius:'50%', overflow:'hidden', margin:'0 auto', border:'2px solid var(--lime)' }}>
+                      <img src={jugador.foto_url} style={{ width:'100%', height:'100%', objectFit:'cover' }} alt=""/>
+                    </div>
+                  </div>
+                )}
                 {[['Posición',s(jugador?.posicion)],['Edad',jugador?.edad?`${jugador.edad} años`:'—'],['Peso',jugador?.peso_kg?`${jugador.peso_kg} kg`:'—'],['Estatura',jugador?.estatura_cm?`${jugador.estatura_cm} cm`:'—'],['Pie hábil',s(jugador?.pie_habil)],['Sesiones (28d)',String(recentLogs.length)]].map(([k,v])=>(
                   <div key={k} style={{ display:'flex', justifyContent:'space-between', padding:'6px 0', borderBottom:'1px solid var(--mist)', fontSize:13 }}>
                     <span style={{ color:'var(--silver)' }}>{k}</span><span style={{ fontWeight:500 }}>{v}</span>
