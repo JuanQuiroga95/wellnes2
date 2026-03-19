@@ -35,7 +35,7 @@ export default async function CoachPage() {
     return {
       id:p.id, nombre:String(p.nombre), usuario:String(p.usuario), activo:Boolean(p.activo),
       jugador_id:p.jugador_id, posicion:String(p.posicion||''), edad:Number(p.edad)||null,
-      peso_kg:String(p.peso_kg||''), estatura_cm:Number(p.estatura_cm)||null, pie_habil:String(p.pie_habil||''), foto_url:p.foto_url?String(p.foto_url):null,
+      peso_kg:String(p.peso_kg||''), estatura_cm:Number(p.estatura_cm)||null, pie_habil:String(p.pie_habil||''), foto_url:p.foto_url?String(p.foto_url):null, email:p.email?String(p.email):null, fecha_nacimiento:p.fecha_nacimiento?String(p.fecha_nacimiento):null, hora_recordatorio:String(p.hora_recordatorio||'08:00'),
       posicion_orden:posOrder(p.posicion), acwr:calcACWR(sl),
       recentLogs:logs.map(l=>({ fecha:String(l.fecha), carga_ua:Number(l.carga_ua)||0, rpe:Number(l.rpe)||0, duracion_min:Number(l.duracion_min)||0 })),
       lastWellness:lastW, respondedToday, entrena_grupo:respondedToday?(lastW?.entrena_grupo??null):null,

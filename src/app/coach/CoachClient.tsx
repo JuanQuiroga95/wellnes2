@@ -152,6 +152,7 @@ export default function CoachClient({ session, teamData, today }) {
               <h2 className="display" style={{ fontSize:48, color:'var(--snow)' }}>JUGADORES</h2>
               <button className="btn-lime" onClick={()=>setShowNew(true)} style={{ fontSize:13, padding:'10px 20px' }}>+ Nuevo jugador</button>
             </div>
+            <CoachEmailSettings />
             {showNew && <NewPlayerForm onSuccess={()=>{ setShowNew(false); router.refresh() }} onCancel={()=>setShowNew(false)} />}
             <div style={{ background:'var(--ink2)', border:'1px solid var(--mist)', borderRadius:16, overflow:'hidden' }}>
               {teamData.length===0
@@ -581,14 +582,14 @@ function NewLesionForm({ teamData, onSuccess, onCancel }) {
 }
 
 function NewPlayerForm({ onSuccess, onCancel }) {
-  const [f, setF] = useState({ nombre:'', usuario:'', password:'', posicion:'', edad:'', peso_kg:'', estatura_cm:'', pie_habil:'Derecho', foto_url:'' })
+  const [f, setF] = useState({ nombre:'', usuario:'', password:'', posicion:'', edad:'', peso_kg:'', estatura_cm:'', pie_habil:'Derecho', foto_url:'', email:'', fecha_nacimiento:'', hora_recordatorio:'08:00' })
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const set = (k,v) => setF(p=>({...p,[k]:v}))
   async function submit(e) {
     e.preventDefault(); setLoading(true); setError('')
     try {
-      const res = await fetch('/api/players',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...f,edad:f.edad?parseInt(f.edad):null,peso_kg:f.peso_kg?parseFloat(f.peso_kg):null,estatura_cm:f.estatura_cm?parseInt(f.estatura_cm):null,foto_url:f.foto_url||null})})
+      const res = await fetch('/api/players',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({...f,edad:f.edad?parseInt(f.edad):null,peso_kg:f.peso_kg?parseFloat(f.peso_kg):null,estatura_cm:f.estatura_cm?parseInt(f.estatura_cm):null,foto_url:f.foto_url||null,email:f.email||null,fecha_nacimiento:f.fecha_nacimiento||null,hora_recordatorio:f.hora_recordatorio||'08:00'})})
       const d = await res.json()
       if (!res.ok) { setError(d.error||'Error'); return }
       onSuccess()
@@ -629,6 +630,9 @@ function NewPlayerForm({ onSuccess, onCancel }) {
           </div>
           <div><label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:5 }}>Posición</label><select className="wp-input" value={f.posicion} onChange={e=>set('posicion',e.target.value)} style={{ appearance:'none' }}><option value="" style={{ background:'var(--ink2)' }}>— Seleccionar —</option>{POSICIONES.map(v=><option key={v} value={v} style={{ background:'var(--ink2)' }}>{v}</option>)}</select></div>
           <div><label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:5 }}>Pie hábil</label><select className="wp-input" value={f.pie_habil} onChange={e=>set('pie_habil',e.target.value)} style={{ appearance:'none' }}>{['Derecho','Izquierdo','Ambidiestro'].map(v=><option key={v} value={v} style={{ background:'var(--ink2)' }}>{v}</option>)}</select></div>
+          <div><label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--lime)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:5 }}>📧 Email (para recordatorios)</label><input className="wp-input" type="email" value={f.email} onChange={e=>set('email',e.target.value)} placeholder="jugador@email.com" /></div>
+          <div><label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--lime)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:5 }}>🎂 Fecha de nacimiento</label><input className="wp-input" type="date" value={f.fecha_nacimiento} onChange={e=>set('fecha_nacimiento',e.target.value)} /></div>
+          <div><label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--lime)', textTransform:'uppercase', letterSpacing:'0.06em', marginBottom:5 }}>⏰ Horario de recordatorio</label><select className="wp-input" value={f.hora_recordatorio} onChange={e=>set('hora_recordatorio',e.target.value)} style={{ appearance:'none' }}>{['06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00'].map(h=><option key={h} value={h} style={{ background:'var(--ink2)' }}>{h}</option>)}</select></div>
         </div>
         {error && <p style={{ fontSize:12, color:'#f87171', marginBottom:12 }}>{error}</p>}
         <div style={{ display:'flex', gap:10 }}>
@@ -703,6 +707,9 @@ function ManageRow({ player, last, onRefresh }) {
                 {player.peso_kg&&<span>⚖️ {player.peso_kg} kg</span>}
                 {player.estatura_cm&&<span>📏 {player.estatura_cm} cm</span>}
                 {player.pie_habil&&<span>⚽ Pie {player.pie_habil}</span>}
+                {player.fecha_nacimiento&&<span>📅 Nac: {player.fecha_nacimiento}</span>}
+                {player.email&&<span>📧 {player.email}</span>}
+                {player.hora_recordatorio&&<span>⏰ Recordatorio: {player.hora_recordatorio}</span>}
               </div>
               <button onClick={toggle} disabled={loading} className="btn-ghost" style={{ fontSize:12, padding:'7px 14px', color:player.activo?'#f87171':'#4ade80', borderColor:player.activo?'rgba(239,68,68,.3)':'rgba(34,197,94,.3)' }}>
                 {loading?'...':player.activo?'Desactivar acceso':'Activar acceso'}
@@ -1018,6 +1025,39 @@ function PhotoUploader({ player }) {
         <input type="file" accept="image/*" style={{ display:'none' }} onChange={handleFile}/>
       </label>
       <p style={{ fontSize:9, color:'var(--silver)', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap', maxWidth:72 }}>{player.nombre.split(' ')[0]}</p>
+    </div>
+  )
+}
+
+function CoachEmailSettings() {
+  const [email, setEmail] = useState('')
+  const [loaded, setLoaded] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  useEffect(()=>{
+    fetch('/api/admin/settings').then(r=>r.json()).then(d=>{ setEmail(d.email||''); setLoaded(true) })
+  },[])
+
+  async function save() {
+    setSaving(true)
+    await fetch('/api/admin/settings', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ email }) })
+    setSaved(true); setSaving(false); setTimeout(()=>setSaved(false), 2000)
+  }
+
+  if (!loaded) return null
+  return (
+    <div style={{ background:'rgba(200,241,53,.06)', border:'1px solid rgba(200,241,53,.2)', borderRadius:14, padding:18 }}>
+      <p style={{ fontSize:11, fontWeight:700, color:'var(--lime)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:12 }}>
+        🎂 Tu email para alertas de cumpleaños
+      </p>
+      <div style={{ display:'flex', gap:10 }}>
+        <input className="wp-input" type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="coach@email.com" style={{ flex:1 }} />
+        <button onClick={save} disabled={saving} className="btn-lime" style={{ padding:'10px 18px', fontSize:13, flexShrink:0 }}>
+          {saved ? '✓' : saving ? '...' : 'Guardar'}
+        </button>
+      </div>
+      <p style={{ fontSize:11, color:'var(--fog)', marginTop:8 }}>Te llegará un email cada vez que un jugador cumpla años.</p>
     </div>
   )
 }

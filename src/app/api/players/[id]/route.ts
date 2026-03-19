@@ -17,13 +17,16 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (b.foto_url !== undefined) {
     await sql`UPDATE jugadores SET foto_url=${b.foto_url} WHERE usuario_id=${id}`
   }
-  if (b.posicion !== undefined || b.edad !== undefined || b.peso_kg !== undefined || b.estatura_cm !== undefined || b.pie_habil !== undefined) {
+  if (b.posicion !== undefined || b.edad !== undefined || b.peso_kg !== undefined || b.estatura_cm !== undefined || b.pie_habil !== undefined || b.email !== undefined || b.fecha_nacimiento !== undefined || b.hora_recordatorio !== undefined) {
     await sql`UPDATE jugadores SET
       posicion=COALESCE(${b.posicion??null},posicion),
       edad=COALESCE(${b.edad??null},edad),
       peso_kg=COALESCE(${b.peso_kg??null},peso_kg),
       estatura_cm=COALESCE(${b.estatura_cm??null},estatura_cm),
-      pie_habil=COALESCE(${b.pie_habil??null},pie_habil)
+      pie_habil=COALESCE(${b.pie_habil??null},pie_habil),
+      email=COALESCE(${b.email??null},email),
+      fecha_nacimiento=COALESCE(${b.fecha_nacimiento??null},fecha_nacimiento),
+      hora_recordatorio=COALESCE(${b.hora_recordatorio??null},hora_recordatorio)
       WHERE usuario_id=${id}`
   }
   return NextResponse.json({ ok: true })

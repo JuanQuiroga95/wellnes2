@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
 }
 export async function POST(req: NextRequest) {
   const s = await getSessionFromRequest(req); if(!s||s.rol!=='admin') return NextResponse.json({error:'No autorizado'},{status:403})
-  const b = await req.json(); const {nombre,usuario,password,posicion,edad,peso_kg,estatura_cm,pie_habil,foto_url} = b
+  const b = await req.json(); const {nombre,usuario,password,posicion,edad,peso_kg,estatura_cm,pie_habil,foto_url,email,fecha_nacimiento,hora_recordatorio} = b
   if (!nombre||!usuario||!password) return NextResponse.json({error:'Nombre, usuario y contraseña requeridos'},{status:400})
   const sql = getDb()
   const ex = await sql`SELECT id FROM usuarios WHERE usuario=${usuario} LIMIT 1`
@@ -19,6 +19,6 @@ export async function POST(req: NextRequest) {
   const h = await bcrypt.hash(password,12)
   const [u] = await sql`INSERT INTO usuarios(nombre,usuario,password_hash,rol) VALUES(${nombre},${usuario},${h},'jugador') RETURNING id`
   const po = POS_ORDER[String(posicion||'').toLowerCase()]??99
-  await sql`INSERT INTO jugadores(usuario_id,posicion,posicion_orden,edad,peso_kg,estatura_cm,pie_habil,foto_url) VALUES(${(u as any).id},${posicion||null},${po},${edad||null},${peso_kg||null},${estatura_cm||null},${pie_habil||'Derecho'},${foto_url||null})`
+  await sql`INSERT INTO jugadores(usuario_id,posicion,posicion_orden,edad,peso_kg,estatura_cm,pie_habil,foto_url,email,fecha_nacimiento,hora_recordatorio) VALUES(${(u as any).id},${posicion||null},${po},${edad||null},${peso_kg||null},${estatura_cm||null},${pie_habil||'Derecho'},${foto_url||null},${email||null},${fecha_nacimiento||null},${hora_recordatorio||'08:00'})`
   return NextResponse.json({ok:true})
 }

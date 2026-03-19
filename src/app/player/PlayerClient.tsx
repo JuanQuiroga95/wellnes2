@@ -4,12 +4,9 @@ import { useRouter } from 'next/navigation'
 import Topbar from '@/components/ui/Topbar'
 import WellnessForm from '@/components/forms/WellnessForm'
 import RPEForm from '@/components/forms/RPEForm'
-import ACWRChart from '@/components/charts/ACWRChart'
 import WellnessTrend from '@/components/charts/WellnessTrend'
 
-const TABS = [{id:'dashboard',label:'Mi Estado'},{id:'wellness',label:'Wellness Pre-Entreno'},{id:'rpe',label:'Registrar Carga'}]
-const SC = {optimo:'#22c55e',precaucion:'#f59e0b',peligro:'#ef4444',sin_datos:'#888'}
-const SL = {optimo:'ESTADO ÓPTIMO',precaucion:'PRECAUCIÓN',peligro:'RIESGO DE LESIÓN',sin_datos:'SIN DATOS'}
+const TABS = [{id:'dashboard',label:'Mi Estado'},{id:'wellness',label:'Wellness Pre-Entreno'},{id:'rpe',label:'Registrar Carga'},{id:'config',label:'⚙️ Mi Perfil'}]
 const WK = ['fatiga','calidad_sueno','dolor_muscular','nivel_estres','estado_animo']
 const WL = ['Fatiga','Sueño','Dolor','Estrés','Ánimo']
 const WC = ['#c8f135','#22c55e','#eab308','#f97316','#ef4444']
@@ -20,7 +17,6 @@ export default function PlayerClient({ session, jugador, jugadorId, acwr, acwrHi
   const [tab, setTab] = useState('dashboard')
   const router = useRouter()
   const lastW = recentWellness[0]
-  const col = SC[acwr.status]||'#888'
 
   return (
     <div style={{ minHeight:'100vh', background:'var(--ink)' }}>
@@ -43,30 +39,33 @@ export default function PlayerClient({ session, jugador, jugadorId, acwr, acwrHi
               )}
             </div>
 
-            {/* ACWR Hero */}
-            <div className="anim-up delay-1" style={{ background:'var(--ink2)', border:`1px solid ${col}44`, borderRadius:20, padding:'28px 28px 24px', position:'relative', overflow:'hidden' }}>
+            {/* Estado del día */}
+            <div className="anim-up delay-1" style={{ background:'var(--ink2)', border:'1px solid var(--mist)', borderRadius:20, padding:'24px', position:'relative', overflow:'hidden' }}>
               <div className="scanline" />
-              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'flex-start', gap:16 }}>
-                <div>
-                  <p style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:8 }}>Ratio ACWR · Hoy</p>
-                  <div className="display" style={{ fontSize:96, color:col, lineHeight:0.9 }}>{acwr.ratio>0?acwr.ratio.toFixed(2):'—'}</div>
-                  <p style={{ fontFamily:'DM Mono,monospace', fontSize:12, color:col, marginTop:10, letterSpacing:'0.06em' }}>{SL[acwr.status]}</p>
-                </div>
-                <div style={{ display:'flex', flexDirection:'column', gap:8, minWidth:120 }}>
-                  {[['Carga 7d',acwr.acuteLoad],['Carga 28d',acwr.chronicLoad]].map(([lbl,val])=>(
-                    <div key={lbl} style={{ background:'var(--ink3)', border:'1px solid var(--mist)', borderRadius:10, padding:'10px 14px', textAlign:'right' }}>
-                      <div className="mono" style={{ fontSize:18, fontWeight:500, color:'var(--snow)' }}>{n(val)}</div>
-                      <div style={{ fontSize:10, color:'var(--silver)', marginTop:2 }}>{lbl} UA</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* ACWR Chart */}
-            <div className="card anim-up delay-2" style={{ padding:'20px 20px 16px' }}>
-              <p style={{ fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>Evolución ACWR — 28 días</p>
-              <ACWRChart data={acwrHistory} />
+              <p style={{ fontFamily:'DM Mono,monospace', fontSize:10, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:16 }}>Tu estado de hoy</p>
+              {(() => {
+                const tw = lastW ? (n(lastW.fatiga)+n(lastW.calidad_sueno)+n(lastW.dolor_muscular)+n(lastW.nivel_estres)+n(lastW.estado_animo)) : 0
+                const ready = tw>0&&tw<=12 ? {label:'Listo para entrenar 💪', col:'#c8f135', msg:'Tu nivel de bienestar es óptimo para la sesión de hoy.'} :
+                              tw<=18 ? {label:'Atención Wellness ⚠️', col:'#f59e0b', msg:'Prestá atención a cómo te sentís durante el entrenamiento.'} :
+                              tw>18  ? {label:'Descarga recomendada 🔴', col:'#ef4444', msg:'Informale al profe cómo estás. Puede que necesites adaptar la carga.'} :
+                              {label:'Completá el wellness', col:'var(--silver)', msg:'Completá el cuestionario pre-entrenamiento para ver tu estado.'}
+                return (
+                  <div>
+                    <div className="display" style={{ fontSize:38, color:ready.col, marginBottom:8 }}>{ready.label}</div>
+                    <p style={{ fontSize:13, color:'var(--silver)', lineHeight:1.5 }}>{ready.msg}</p>
+                    {tw>0 && (
+                      <div style={{ marginTop:14, display:'flex', gap:8, flexWrap:'wrap' }}>
+                        {[['Sesiones (28d)', String(recentLogs.length)], ['Carga semana', String(acwr.acuteLoad)+' UA'], ['Sesiones mes', String(recentLogs.length)]].map(([k,v])=>(
+                          <div key={k} style={{ background:'var(--ink3)', border:'1px solid var(--mist)', borderRadius:8, padding:'8px 12px', textAlign:'center' }}>
+                            <div className="mono" style={{ fontSize:16, color:'var(--snow)', fontWeight:600 }}>{v}</div>
+                            <div style={{ fontSize:10, color:'var(--silver)', marginTop:2 }}>{k}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
             </div>
 
             {/* Profile + Wellness */}
@@ -157,7 +156,94 @@ export default function PlayerClient({ session, jugador, jugadorId, acwr, acwrHi
             </div>
           </div>
         )}
+
+        {tab==='config' && (
+          <PlayerConfig jugadorId={jugadorId} jugador={jugador} onSaved={()=>router.refresh()} />
+        )}
       </main>
+    </div>
+  )
+}
+
+function PlayerConfig({ jugadorId, jugador, onSaved }) {
+  const [email, setEmail] = useState(jugador?.email||'')
+  const [hora, setHora] = useState(jugador?.hora_recordatorio||'08:00')
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+
+  async function save() {
+    setSaving(true)
+    try {
+      await fetch(`/api/players/config`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email||null, hora_recordatorio: hora }),
+      })
+      setSaved(true); setTimeout(()=>setSaved(false), 2000)
+      onSaved()
+    } finally { setSaving(false) }
+  }
+
+  const HORAS = ['06:00','06:30','07:00','07:30','08:00','08:30','09:00','09:30','10:00','10:30','11:00','11:30','12:00','12:30','13:00','14:00','15:00','16:00','17:00','18:00','19:00','20:00','21:00']
+
+  return (
+    <div className="anim-up" style={{ display:'flex', flexDirection:'column', gap:16 }}>
+      <div>
+        <h2 className="display" style={{ fontSize:48, color:'var(--snow)' }}>MI PERFIL</h2>
+        <p style={{ color:'var(--silver)', fontSize:14, marginTop:4 }}>Configurá tus notificaciones y datos de contacto.</p>
+      </div>
+
+      <div className="card" style={{ padding:24 }}>
+        <p style={{ fontSize:10, fontWeight:700, color:'var(--lime)', textTransform:'uppercase', letterSpacing:'0.1em', marginBottom:20 }}>
+          🔔 Recordatorio Diario de Wellness
+        </p>
+        <p style={{ fontSize:13, color:'var(--silver)', marginBottom:20, lineHeight:1.6 }}>
+          La app te va a mandar un email a la hora que elijas si todavía no completaste el cuestionario de wellness del día.
+        </p>
+
+        <div style={{ display:'flex', flexDirection:'column', gap:14 }}>
+          <div>
+            <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 }}>
+              📧 Tu email para notificaciones
+            </label>
+            <input
+              className="wp-input" type="email" value={email}
+              onChange={e=>setEmail(e.target.value)}
+              placeholder="tuemail@gmail.com"
+            />
+            <p style={{ fontSize:11, color:'var(--fog)', marginTop:5 }}>Solo se usa para enviarte recordatorios. Nadie más lo ve.</p>
+          </div>
+
+          <div>
+            <label style={{ display:'block', fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:8 }}>
+              ⏰ Horario del recordatorio
+            </label>
+            <select className="wp-input" value={hora} onChange={e=>setHora(e.target.value)} style={{ appearance:'none' }}>
+              {HORAS.map(h=>(
+                <option key={h} value={h} style={{ background:'var(--ink2)' }}>{h} hs</option>
+              ))}
+            </select>
+            <p style={{ fontSize:11, color:'var(--fog)', marginTop:5 }}>
+              Si a esa hora no completaste el wellness, te llega un recordatorio por email.
+            </p>
+          </div>
+        </div>
+
+        <button onClick={save} disabled={saving} className="btn-lime" style={{ width:'100%', padding:14, fontSize:14, marginTop:20 }}>
+          {saved ? '✓ GUARDADO' : saving ? 'GUARDANDO...' : 'GUARDAR CONFIGURACIÓN →'}
+        </button>
+      </div>
+
+      {/* Info card */}
+      <div style={{ background:'rgba(200,241,53,.06)', border:'1px solid rgba(200,241,53,.2)', borderRadius:14, padding:18 }}>
+        <p style={{ fontSize:12, color:'var(--lime)', fontWeight:600, marginBottom:8 }}>¿Cómo funcionan los recordatorios?</p>
+        <ul style={{ fontSize:12, color:'var(--silver)', lineHeight:1.8, paddingLeft:16 }}>
+          <li>Cada día a la hora que elegís, el sistema verifica si completaste el wellness</li>
+          <li>Si no lo completaste, te manda un email con un link directo al formulario</li>
+          <li>Si ya lo completaste, no te molesta</li>
+          <li>Podés cambiar el horario cuando quieras desde esta pantalla</li>
+        </ul>
+      </div>
     </div>
   )
 }
