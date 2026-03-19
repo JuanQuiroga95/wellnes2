@@ -5,7 +5,7 @@ import Topbar from '@/components/ui/Topbar'
 import StatusBadge from '@/components/ui/StatusBadge'
 import ACWRChart from '@/components/charts/ACWRChart'
 import WellnessTrend from '@/components/charts/WellnessTrend'
-import { buildACWRHistory } from '@/lib/acwr'
+import { buildACWRHistory, buildDailyDetail } from '@/lib/acwr'
 import AnalyticsPanel from './AnalyticsPanel'
 
 const TABS = [{id:'team',label:'Equipo'},{id:'analytics',label:'Analytics'},{id:'minutos',label:'Carga Acumulada'},{id:'lesiones',label:'Lesiones'},{id:'players',label:'Jugadores'}]
@@ -248,7 +248,7 @@ function PlayerDetail({ player:p, logs, wellness, loading, onBack }) {
         </div>
         {!p.lesion && (
           <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginTop:20 }}>
-            {[['Carga aguda (7d)',p.acwr?.acuteLoad],['Carga crónica (28d)',p.acwr?.chronicLoad]].map(([l,v])=>(
+            {[['Carga aguda (suma 7d)',p.acwr?.acuteLoad],['Carga crónica (prom. 4 sem.)',p.acwr?.chronicLoad]].map(([l,v])=>(
               <div key={l} style={{ background:'var(--ink3)', border:'1px solid var(--mist)', borderRadius:10, padding:'12px 16px', textAlign:'center' }}>
                 <div className="mono" style={{ fontSize:20, fontWeight:500, color:'var(--snow)' }}>{v}</div>
                 <div style={{ fontSize:11, color:'var(--silver)', marginTop:2 }}>{l} UA</div>
@@ -259,9 +259,58 @@ function PlayerDetail({ player:p, logs, wellness, loading, onBack }) {
       </div>
       {!p.lesion && (
         <div style={{ background:'var(--ink2)', border:'1px solid var(--mist)', borderRadius:16, padding:20 }}>
-          <p style={{ fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>Evolución ACWR</p>
-          {loading ? <div style={{ height:160, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--silver)' }}>Cargando...</div>
+          <p style={{ fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>Evolución ACWR — 28 días</p>
+          {loading
+            ? <div style={{ height:160, display:'flex', alignItems:'center', justifyContent:'center', color:'var(--silver)' }}>Cargando...</div>
             : <ACWRChart data={buildACWRHistory(logs)} />}
+        </div>
+      )}
+
+      {!p.lesion && !loading && logs.length > 0 && (
+        <div style={{ background:'var(--ink2)', border:'1px solid var(--mist)', borderRadius:16, padding:20 }}>
+          <p style={{ fontSize:11, fontWeight:600, color:'var(--silver)', textTransform:'uppercase', letterSpacing:'0.08em', marginBottom:14 }}>Detalle últimos 7 días</p>
+          <div style={{ overflowX:'auto' }}>
+            <table style={{ width:'100%', borderCollapse:'collapse', fontSize:12 }}>
+              <thead>
+                <tr style={{ background:'rgba(255,255,255,.03)' }}>
+                  {['Día','Fecha','Carga UA','ACWR','Estado'].map(h=>(
+                    <th key={h} style={{ padding:'7px 12px', color:'var(--silver)', fontWeight:600, textTransform:'uppercase', fontSize:9, letterSpacing:'0.06em', textAlign:'center', whiteSpace:'nowrap' }}>{h}</th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {buildDailyDetail(logs.map(l=>({fecha:String(l.fecha),carga_ua:Number(l.carga_ua)||0}))).map((row,i)=>{
+                  const SC2={optimo:'#22c55e',precaucion:'#f59e0b',peligro:'#ef4444',peligro_bajo:'#3b82f6',sin_datos:'#444'}
+                  const SL2={optimo:'Óptimo',precaucion:'Precaución',peligro:'Riesgo alto',peligro_bajo:'Carga baja',sin_datos:'—'}
+                  const col = SC2[row.status]||'#444'
+                  return (
+                    <tr key={i} style={{ borderTop:'1px solid var(--mist)', background: row.hasSesion?'transparent':'rgba(0,0,0,.2)' }}>
+                      <td style={{ padding:'8px 12px', textAlign:'center', fontWeight:600, color:'var(--silver)' }}>{row.dia}</td>
+                      <td style={{ padding:'8px 12px', textAlign:'center', fontFamily:'DM Mono,monospace', fontSize:11, color:'var(--fog)' }}>{row.date.slice(5)}</td>
+                      <td style={{ padding:'8px 12px', textAlign:'center', fontFamily:'DM Mono,monospace', fontWeight:700, color: row.hasSesion?'var(--lime)':'var(--fog)' }}>
+                        {row.hasSesion ? row.carga : '—'}
+                      </td>
+                      <td style={{ padding:'8px 12px', textAlign:'center', fontFamily:'DM Mono,monospace', fontWeight:700, color: col }}>
+                        {row.ratio > 0 ? row.ratio.toFixed(2) : '—'}
+                      </td>
+                      <td style={{ padding:'8px 12px', textAlign:'center' }}>
+                        <span style={{ fontSize:10, padding:'3px 8px', borderRadius:20, background:`${col}20`, color:col, border:`1px solid ${col}44`, fontWeight:600 }}>
+                          {SL2[row.status]||'—'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+          <div style={{ marginTop:12, display:'flex', gap:12, flexWrap:'wrap' }}>
+            {[['#3b82f6','< 0.8 Carga baja'],['#22c55e','0.8–1.3 Óptimo'],['#f59e0b','1.3–1.5 Precaución'],['#ef4444','> 1.5 Riesgo']].map(([c,l])=>(
+              <div key={l} style={{ display:'flex', alignItems:'center', gap:5, fontSize:10, color:'var(--silver)' }}>
+                <div style={{ width:8, height:8, borderRadius:2, background:c }} />{l}
+              </div>
+            ))}
+          </div>
         </div>
       )}
       {lastW && (
@@ -276,10 +325,12 @@ function PlayerDetail({ player:p, logs, wellness, loading, onBack }) {
               </div>
             )})}
           </div>
-          {(lastW.tqr>0||lastW.recovery>0) && (
+          {lastW.tqr>0 && (
             <div style={{ display:'flex', gap:10, marginBottom:12 }}>
-              {lastW.tqr>0 && <div style={{ flex:1, background:'var(--ink3)', border:'1px solid var(--mist)', borderRadius:8, padding:10, textAlign:'center' }}><div className="mono" style={{ fontSize:20, color:lastW.tqr>=7?'#22c55e':lastW.tqr>=5?'#f59e0b':'#ef4444' }}>{lastW.tqr}</div><div style={{ fontSize:10, color:'var(--silver)' }}>TQR</div></div>}
-              {lastW.recovery>0 && <div style={{ flex:1, background:'var(--ink3)', border:'1px solid var(--mist)', borderRadius:8, padding:10, textAlign:'center' }}><div className="mono" style={{ fontSize:20, color:lastW.recovery>=7?'#22c55e':lastW.recovery>=5?'#f59e0b':'#ef4444' }}>{lastW.recovery}</div><div style={{ fontSize:10, color:'var(--silver)' }}>Recovery</div></div>}
+              <div style={{ flex:1, background:'var(--ink3)', border:'1px solid var(--mist)', borderRadius:8, padding:10, textAlign:'center' }}>
+                <div className="mono" style={{ fontSize:20, color:lastW.tqr>=8?'#c8f135':lastW.tqr>=6?'#22c55e':lastW.tqr>=4?'#f59e0b':'#ef4444' }}>{lastW.tqr}</div>
+                <div style={{ fontSize:10, color:'var(--silver)' }}>TQR — Recuperación</div>
+              </div>
             </div>
           )}
           <div style={{ display:'flex', flexWrap:'wrap', gap:6 }}>

@@ -4,8 +4,10 @@ import { sendReminderEmail, sendBirthdayEmail } from '@/lib/email'
 
 // This endpoint is called by Vercel Cron — no auth needed but uses a secret
 export async function GET(req: NextRequest) {
-  const secret = req.headers.get('x-cron-secret') || req.nextUrl.searchParams.get('secret')
-  if (secret !== process.env.CRON_SECRET) {
+  // Accept: our CRON_SECRET param OR Vercel's internal cron header
+  const secret = req.nextUrl.searchParams.get('secret') || req.headers.get('x-cron-secret')
+  const isVercelCron = req.headers.get('x-vercel-cron') === '1'
+  if (!isVercelCron && secret !== process.env.CRON_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
